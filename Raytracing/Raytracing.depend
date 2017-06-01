@@ -1,0 +1,12 @@
+# depslib dependency file v1.0
+1478162170 source:c:\users\admin\desktop\raytracing\raytracing\vmath.cpp
+	"vmath.h"
+
+1496326973 c:\users\admin\desktop\raytracing\raytracing\vmath.h
+	<cmath>
+	<cstring>
+	<iostream>
+	<sstream>
+	<string>
+	<cassert>
+
