@@ -1021,6 +1021,17 @@ public:
 		z /= s;
 	}
 
+    /**
+	 * Copiar y  Normalizar vector
+	 */
+	Vector3<T> normalized() const
+	{
+	    Vector3<T> n = *this;
+	    n.normalize();
+	    return n;
+	}
+
+
 	//------------[ other operations ]---------------------------
 	/**
 	 * Rotate vector around three axis.

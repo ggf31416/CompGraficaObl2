@@ -10,3 +10,14 @@
 	<string>
 	<cassert>
 
+1478162170 source:c:\users\admin\desktop\compgraficaobl2\raytracing\vmath.cpp
+	"vmath.h"
+
+1496329793 c:\users\admin\desktop\compgraficaobl2\raytracing\vmath.h
+	<cmath>
+	<cstring>
+	<iostream>
+	<sstream>
+	<string>
+	<cassert>
+

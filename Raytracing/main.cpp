@@ -64,6 +64,7 @@ public:
     float coef_ambiental;
     float coef_transmision;
     float coef_especular;
+    float coef_difuso;
     float exp_especular;
     float indice_refr;
 
@@ -133,24 +134,48 @@ bool refraccion(float n1, float n2,const VEC& incidente,const VEC& normal, VEC& 
     return TIR;
 }
 
+// S_i , determina que fraccion de la luz llega desde la fuente de luz al punto P
+float CalcularSombra(const VEC& P,Luz* luz){
+    return 1;
+}
 
+const float ATT_C1 = 0; // factor cte
+const float ATT_C2 = 0; // factor dl
+const float ATT_C3 = 1; // factor dl^2
+float Atenuacion(const VEC& vector_s){
+    float d2 = vector_s.lengthSq();
+    float d1 = ATT_C2 > 0 ? ATT_C2 * sqrt(d2) : 0;
+    return min(1 / (ATT_C1 + d1 + ATT_C3 * d2),1);
+}
 
 COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int profundidad){
     COLOR_F color = colorAmbiente();
+    Objeto* obj = getObjeto(inter.objetoIdx);
     for(int l = 0; l < CANT_LUCES; l++){
         Luz* luz = luces[l];
         // rayo desde punto a luz
-        VEC rayo_s = inter.punto - luz->posicion; // corregir formula
-        rayo_s.normalize();
+        VEC vector_s = inter.punto - luz->posicion; // corregir formula
+        VEC dir_s = rayo_s.normalized();
+
         double dot = normal.dotProduct(rayo);
         if (dot > 0){
             // calcular cuanta luz es bloqueada por sup. opacas y transparentes y usarlas para...
+            double S = CalcularSombra(inter.punto,luz);
+            if (S > 0){ // si el punto no esta en sombra
 
+                float f_att = Atenuacion(vector_s);
+                COLOR_F color_luz = S * f_att * luz->color;
+
+                COLOR_F color_dif = obj->getColorDifusoAt(inter->punto_obj) *  obj->coef_difuso * dot ;
+
+                color += color_luz * color_dif; // producto elemento a elemento
+
+            }
 
         }
     }
     if (profundidad < MAX_RECURSION_LEVEL){
-        Objeto* obj = getObjeto(inter.objetoIdx);
+
         if (obj->esReflejante){
             // rayo en la direccion de reflexion desde punto
             VEC rayo_r = getRayoReflexion(rayo,normal);
