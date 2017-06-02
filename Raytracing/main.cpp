@@ -148,8 +148,10 @@ float Atenuacion(const VEC& vector_s){
     return min(1 / (ATT_C1 + d1 + ATT_C3 * d2),1);
 }
 
+
 COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int profundidad){
     COLOR_F color = colorAmbiente();
+    VEC V; /// de donde sale V ???
     Objeto* obj = getObjeto(inter.objetoIdx);
     for(int l = 0; l < CANT_LUCES; l++){
         Luz* luz = luces[l];
@@ -168,7 +170,12 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int pr
 
                 COLOR_F color_dif = obj->getColorDifusoAt(inter->punto_obj) *  obj->coef_difuso * dot ;
 
-                color += color_luz * color_dif; // producto elemento a elemento
+                VEC rayo_r = getRayoReflexion(rayo,normal);
+
+                float phong = getValorPhong(rayo_r,V,obj->exp_especular);
+                COLOR_F color_espec = obj->getColorEspecularAt(inter->punto_obj) * obj->coef_especular * phong;
+
+                color += color_luz * (color_dif + color_espec); // producto elemento a elemento
 
             }
 

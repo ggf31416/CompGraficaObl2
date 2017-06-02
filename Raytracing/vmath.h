@@ -4078,6 +4078,7 @@ namespace VMATH_NAMESPACE
 
 
 
+
 #ifdef VMATH_NAMESPACE
 }
 #endif //VMATH_NAMESPACE
