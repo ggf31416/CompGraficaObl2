@@ -1011,14 +1011,38 @@ public:
 	}
 
 	/**
-	 * Normalize vector
+	 * Normalize vector (el de vmath, quizas ligeramente mas exacto por temas de PF)
 	 */
-	void normalize()
+	void normalize_div()
 	{
 		T s = length();
 		x /= s;
 		y /= s;
 		z /= s;
+	}
+
+    /**
+	 * Normalize vector (mas rapido al usar solo una division)
+	 */
+    void normalize()
+	{
+		T inv = (T)1 / length();
+		x *= inv;
+		y *= inv;
+		z *= inv;
+	}
+
+    /**
+	 * Normalize vector (y retornar length!!!)
+	 */
+	void normalize(T& len)
+	{
+		T s = length();
+		T inv = (T)1 / s;
+		x *= inv;
+		y *= inv;
+		z *= inv;
+		len = s;
 	}
 
     /**

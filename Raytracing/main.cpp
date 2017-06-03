@@ -1,5 +1,6 @@
 #include <iostream>
 #include "vmath.h"
+#include <ctime>
 
 using namespace std;
 
@@ -74,12 +75,63 @@ public:
 
 Luz** luces;
 
-COLOR_F traza_RR(const VEC& rayo,int profundidad);
-COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int profundidad);
+COLOR_F traza_RR(const VEC& rayo,const VEC& V,int profundidad);
+COLOR_F sombra_RR(Interseccion& inter,const VEC& dir_rayo, const VEC& V,const VEC& normal, int profundidad);
+
+// Release
+//Normalize double:
+//normalize (div): 37364 - 3.4641e+009
+//normalize (inv): 18351 - 3.4641e+009
+//Normalize float:
+//normalize (div): 37368 - 3.4641e+009
+//normalize (inv): 18353 - 3.4641e+009
+
+// Release -O3
+//Normalize double:
+//normalize (div):  37374 - 3.4641e+009
+//normalize (inv): 18410 - 3.4641e+009
+//Normalize float:
+//normalize (div):  37364 - 3.4641e+009
+//normalize (inv): 18361 - 3.4641e+009
+
+
+// Debug
+//Normalize double:
+//normalize (div):  126926 - 3.4641e+009
+//normalize (inv): 108589 - 3.4641e+009
+//Normalize float:
+//normalize (div):  50530 - 3.35544e+007
+//normalize (inv): 40439 - 3.35544e+007
+
+template<typename T> void speedNormalize3(){
+    int MAX = 2000000000;
+    T acum = 0;
+    clock_t time1 = clock();
+    for(int i = 1; i <= MAX; i++){
+        Vector3<T> n(i,i+100,i+200);
+        n.normalize_div();
+        acum += n.x + n.y + n.z;
+    }
+    float ms = (1000.0 * (clock() - time1)) / CLOCKS_PER_SEC;
+    cout << "normalize (div): " << ms << " - " << acum << endl;
+    time1 = clock();
+    acum = 0;
+    for(int i = 1; i <= MAX; i++){
+        Vector3<T> n(i,i+100,i+200);
+        n.normalize();
+        acum +=  n.x + n.y + n.z;
+    }
+    ms = (1000.0 * (clock() - time1)) / CLOCKS_PER_SEC;
+    cout << "normalize (inv): " << ms << " - " << acum << endl;
+
+}
 
 int main()
 {
-    cout << "Hello world!" << endl;
+    /*cout << "Normalize double:" << endl;
+    speedNormalize3<double>();
+    cout << "Normalize float:" << endl;
+    speedNormalize3<float>();*/
     return 0;
 }
 
@@ -145,21 +197,26 @@ const float ATT_C3 = 1; // factor dl^2
 float Atenuacion(const VEC& vector_s){
     float d2 = vector_s.lengthSq();
     float d1 = ATT_C2 > 0 ? ATT_C2 * sqrt(d2) : 0;
-    return min(1 / (ATT_C1 + d1 + ATT_C3 * d2),1);
+    return min(1 / (ATT_C1 + d1 + ATT_C3 * d2),1.0f);
 }
 
-
-COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int profundidad){
+/*
+//inter: Datos de interseccion
+//dir_rayo: Vector direccion del rayo (normalizado)
+//V: Punto de origen del rayo
+//normal: Vector normal a la superficie (normalizado)
+//profundidad: nivel recursivo
+*/
+COLOR_F sombra_RR(Interseccion& inter,const VEC& dir_rayo, const VEC& V,const VEC& normal, int profundidad){
     COLOR_F color = colorAmbiente();
-    VEC V; /// de donde sale V ???
     Objeto* obj = getObjeto(inter.objetoIdx);
     for(int l = 0; l < CANT_LUCES; l++){
         Luz* luz = luces[l];
         // rayo desde punto a luz
         VEC vector_s = inter.punto - luz->posicion; // corregir formula
-        VEC dir_s = rayo_s.normalized();
+        VEC dir_s = vector_s.normalized();
 
-        double dot = normal.dotProduct(rayo);
+        double dot = normal.dotProduct(dir_rayo);
         if (dot > 0){
             // calcular cuanta luz es bloqueada por sup. opacas y transparentes y usarlas para...
             double S = CalcularSombra(inter.punto,luz);
@@ -168,12 +225,12 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int pr
                 float f_att = Atenuacion(vector_s);
                 COLOR_F color_luz = S * f_att * luz->color;
 
-                COLOR_F color_dif = obj->getColorDifusoAt(inter->punto_obj) *  obj->coef_difuso * dot ;
+                COLOR_F color_dif = obj->getColorDifusoAt(inter.punto_obj) *  obj->coef_difuso * dot ;
 
-                VEC rayo_r = getRayoReflexion(rayo,normal);
+                VEC rayo_r = getRayoReflexion(dir_rayo,normal);
 
                 float phong = getValorPhong(rayo_r,V,obj->exp_especular);
-                COLOR_F color_espec = obj->getColorEspecularAt(inter->punto_obj) * obj->coef_especular * phong;
+                COLOR_F color_espec = obj->getColorEspecularAt(inter.punto_obj) * obj->coef_especular * phong;
 
                 color += color_luz * (color_dif + color_espec); // producto elemento a elemento
 
@@ -185,8 +242,8 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int pr
 
         if (obj->esReflejante){
             // rayo en la direccion de reflexion desde punto
-            VEC rayo_r = getRayoReflexion(rayo,normal);
-            COLOR_F color_r = traza_RR(rayo_r,profundidad + 1);
+            VEC rayo_r = getRayoReflexion(dir_rayo,normal);
+            COLOR_F color_r = traza_RR(rayo_r,inter.punto,profundidad + 1);
             color += color_r * obj->coef_especular;
         }
         if (obj->esTransparente){
@@ -194,7 +251,7 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int pr
             if (noTIR){
                 // rayo en la direccion de refraccion desde punto;
                 VEC rayo_t;
-                COLOR_F color_t = traza_RR(rayo_t,profundidad + 1);
+                COLOR_F color_t = traza_RR(rayo_t,inter.punto,profundidad + 1);
                 color += color_t * obj->coef_transmision;
             }
         }
@@ -203,25 +260,26 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& rayo, const VEC& normal, int pr
 }
 
 
-COLOR_F traza_RR(const VEC& rayo,int profundidad){
+COLOR_F traza_RR(const VEC& rayo,const VEC& V,int profundidad){
     // determinar la intersección más cercana de rayo con un objeto
     Interseccion inter;
     bool intersecto = interseccion(rayo,&inter);
     if (intersecto){
         // calcular la normal en la interseccion
         VEC normal = getNormal(&inter);
-        return sombra_RR(inter,rayo,normal,profundidad);
+        return sombra_RR(inter,rayo,V,normal,profundidad);
     }
     return clearColor;
 }
 
 
 void raytracing(int w, int h){
+    VEC pos;
     for(int i = 0; i < h; i++){ // fila
         for(int j = 0; j < w; j++){ // columna
             // determinar rayo por centro de proyeccion y pixel
             Vector3d rayo;
-            COLOR_F p = traza_RR(rayo,1);
+            COLOR_F p = traza_RR(rayo,pos,1);
         }
     }
 }

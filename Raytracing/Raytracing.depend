@@ -13,11 +13,16 @@
 1478162170 source:c:\users\admin\desktop\compgraficaobl2\raytracing\vmath.cpp
 	"vmath.h"
 
-1496329793 c:\users\admin\desktop\compgraficaobl2\raytracing\vmath.h
+1496487458 c:\users\admin\desktop\compgraficaobl2\raytracing\vmath.h
 	<cmath>
 	<cstring>
 	<iostream>
 	<sstream>
 	<string>
 	<cassert>
+
+1496485973 source:c:\users\admin\desktop\compgraficaobl2\raytracing\main.cpp
+	<iostream>
+	"vmath.h"
+	<ctime>
 
