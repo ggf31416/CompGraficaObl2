@@ -213,14 +213,14 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& dir_rayo, const VEC& V,const VE
     for(int l = 0; l < CANT_LUCES; l++){
         Luz* luz = luces[l];
         // rayo desde punto a luz
-        VEC vector_L = inter.punto - luz->posicion; // corregir formula
+        VEC vector_L = inter.punto - luz->posicion;
         float att_dist = 0;
         VEC dir_L = vector_L.normalized(att_dist);
 
         double dot = normal.dotProduct(dir_L);
         if (dot > 0){
             // calcular cuanta luz es bloqueada por sup. opacas y transparentes y usarlas para...
-            double S = CalcularSombra(inter.punto,luz);
+            double S = CalcularSombra(inter.punto,luz); // sirve mas pasar vector_L ?
             if (S > 0){ // si el punto no esta en sombra
 
                 float f_att = Atenuacion(att_dist);
