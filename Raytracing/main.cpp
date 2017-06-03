@@ -103,6 +103,7 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& dir_rayo, const VEC& V,const VE
 //normalize (div):  50530 - 3.35544e+007
 //normalize (inv): 40439 - 3.35544e+007
 
+// Prueba velocidad funcion normaliza de Vector3<float> o Vector3<double>
 template<typename T> void speedNormalize3(){
     int MAX = 2000000000;
     T acum = 0;
@@ -194,15 +195,14 @@ float CalcularSombra(const VEC& P,Luz* luz){
 const float ATT_C1 = 0; // factor cte
 const float ATT_C2 = 0; // factor dl
 const float ATT_C3 = 1; // factor dl^2
-float Atenuacion(const VEC& vector_s){
-    float d2 = vector_s.lengthSq();
-    float d1 = ATT_C2 > 0 ? ATT_C2 * sqrt(d2) : 0;
-    return min(1 / (ATT_C1 + d1 + ATT_C3 * d2),1.0f);
+float Atenuacion(float dist){
+    return min(1 / (ATT_C1 + dist * (ATT_C2 + ATT_C3 * dist)),1.0f);
 }
 
 /*
 //inter: Datos de interseccion
 //dir_rayo: Vector direccion del rayo (normalizado)
+//dir_ rayo deberia ser igual a (inter.punto - V).normalized()
 //V: Punto de origen del rayo
 //normal: Vector normal a la superficie (normalizado)
 //profundidad: nivel recursivo
@@ -213,23 +213,24 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& dir_rayo, const VEC& V,const VE
     for(int l = 0; l < CANT_LUCES; l++){
         Luz* luz = luces[l];
         // rayo desde punto a luz
-        VEC vector_s = inter.punto - luz->posicion; // corregir formula
-        VEC dir_s = vector_s.normalized();
+        VEC vector_L = inter.punto - luz->posicion; // corregir formula
+        float att_dist = 0;
+        VEC dir_L = vector_L.normalized(att_dist);
 
-        double dot = normal.dotProduct(dir_rayo);
+        double dot = normal.dotProduct(dir_L);
         if (dot > 0){
             // calcular cuanta luz es bloqueada por sup. opacas y transparentes y usarlas para...
             double S = CalcularSombra(inter.punto,luz);
             if (S > 0){ // si el punto no esta en sombra
 
-                float f_att = Atenuacion(vector_s);
+                float f_att = Atenuacion(att_dist);
                 COLOR_F color_luz = S * f_att * luz->color;
 
                 COLOR_F color_dif = obj->getColorDifusoAt(inter.punto_obj) *  obj->coef_difuso * dot ;
 
-                VEC rayo_r = getRayoReflexion(dir_rayo,normal);
+                VEC rayo_r = getRayoReflexion(dir_L,normal);
 
-                float phong = getValorPhong(rayo_r,V,obj->exp_especular);
+                float phong = getValorPhong(rayo_r,-dir_rayo,obj->exp_especular);
                 COLOR_F color_espec = obj->getColorEspecularAt(inter.punto_obj) * obj->coef_especular * phong;
 
                 color += color_luz * (color_dif + color_espec); // producto elemento a elemento
@@ -242,8 +243,8 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& dir_rayo, const VEC& V,const VE
 
         if (obj->esReflejante){
             // rayo en la direccion de reflexion desde punto
-            VEC rayo_r = getRayoReflexion(dir_rayo,normal);
-            COLOR_F color_r = traza_RR(rayo_r,inter.punto,profundidad + 1);
+            VEC rayo_r = getRayoReflexion(-dir_rayo,normal);
+            COLOR_F color_r = traza_RR(rayo_r,inter.punto,profundidad + 1); // recursion
             color += color_r * obj->coef_especular;
         }
         if (obj->esTransparente){
@@ -251,7 +252,7 @@ COLOR_F sombra_RR(Interseccion& inter,const VEC& dir_rayo, const VEC& V,const VE
             if (noTIR){
                 // rayo en la direccion de refraccion desde punto;
                 VEC rayo_t;
-                COLOR_F color_t = traza_RR(rayo_t,inter.punto,profundidad + 1);
+                COLOR_F color_t = traza_RR(rayo_t,inter.punto,profundidad + 1); // recursion
                 color += color_t * obj->coef_transmision;
             }
         }

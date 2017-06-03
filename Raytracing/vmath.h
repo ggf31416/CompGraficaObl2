@@ -1055,6 +1055,16 @@ public:
 	    return n;
 	}
 
+    /**
+	 * Copiar y  Normalizar vector
+	 */
+	Vector3<T> normalized(T& len) const
+	{
+	    Vector3<T> n = *this;
+	    n.normalize(len);
+	    return n;
+	}
+
 
 	//------------[ other operations ]---------------------------
 	/**
